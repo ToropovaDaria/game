@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Верстак Котолап</title>
+    <style>
+        /* Сброс стилей */
+        * { box-sizing: border-box; touch-action: manipulation; }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            background: #1a1a1a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            width: 100vw;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        /* Контейнер адаптируется под ширину экрана */
+        .game-container {
+            width: 100vw;
+            height: 56.25vw; /* Соотношение сторон 16:9 */
+            max-width: 1024px;
+            max-height: 600px;
+            position: relative;
+            border: 4px solid #111;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+            background: #b3d4f0;
+            overflow: hidden;
+        }
+
+        /* --- ГЛАВНЫЙ МИР (РИСУНОК) --- */
+        #mainWorld {
+            position: absolute;
+            inset: 0;
+            z-index: 10;
+            background-image: radial-gradient(circle at 50% 0%, #fff 20%, #b3d4f0 80%);
+            transition: filter 0.3s, opacity 0.3s;
+        }
+        #mainWorld.hidden {
+            filter: blur(5px);
+            opacity: 0.2;
+        }
+
+        .ground-main {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 30%; /* 180px от 600px = 30% */
+            background: #4a5d4a;
+            background-image: repeating-linear-gradient(-45deg, #2b3a2b 0px, #2b3a2b 3px, #5a6d5a 3px, #5a6d5a 6px);
+            border-top: 2px solid #222;
+        }
+        
+        .hint-main {
+            position: absolute;
+            top: 3%;
+            width: 100%;
+            text-align: center;
+            color: #222;
+            font-size: 2.2vw;
+            font-weight: bold;
+            pointer-events: none;
+            text-shadow: 0 0 5px rgba(255,255,255,0.5);
+        }
+
+        .cloud { position: absolute; width: 10%; height: 5%; background: #fff; border: 2px solid #ccc; }
+        .cloud::before { content: ''; position: absolute; top: -40%; left: 10%; width: 60%; height: 60%; background: #fff; border: 2px solid #ccc; border-radius: 50% 50% 0 0; }
+        .c1 { top: 10%; left: 8%; }
+        .c2 { top: 18%; left: 47%; }
+        .c3 { top: 15%; right: 12%; }
+
+        .tree { position: absolute; bottom: 30%; right: 25%; }
+        .tree-trunk { width: 30%; height: 70%; background: #6b4c2a; border: 2px solid #4a341c; margin: 0 auto; }
+        .tree-leaves { width: 100%; height: 30%; background: #2d6a2d; border: 2px solid #1f4a1f; }
+
+        .workbench {
+            position: absolute;
+            bottom: 30%;
+            left: 44%;
+            width: 7%;
+            height: 12%;
+            background: #8b5a2b;
+            border: 3px solid #5a3a1b;
+            box-shadow: 0 4px 0 #4a2a1b;
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.2s;
+            z-index: 5;
+            touch-action: manipulation;
+        }
+        .workbench::before {
+            content: '';
+            position: absolute;
+            top: 5px; left: 45%;
+            width: 8%; height: 80%;
+            background: #3b2a1b;
+            transform: rotate(45deg);
+        }
+        .workbench::after {
+            content: '';
+            position: absolute;
+            top: 5px; left: 45%;
+            width: 8%; height: 80%;
+            background: #3b2a1b;
+            transform: rotate(-45deg);
+        }
+        .workbench:active {
+            transform: scale(0.9);
+        }
+        .workbench-label {
+            position: absolute;
+            top: -30%; left: -30%; width: 160%;
+            text-align: center;
+            color: #fff;
+            font-weight: bold;
+            background: rgba(0,0,0,0.7);
+            padding: 5px;
+            border-radius: 8px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            font-size: 1.5vw;
+            border: 1px solid #ffcc00;
+        }
+        .workbench:hover .workbench-label { opacity: 1; }
+
+        .cat-main {
+            position: absolute;
+            bottom: 30%;
+            left: 24%;
+            width: 5%;
+            height: 8%;
+            background: #fff;
+            border: 3px solid #222;
+            border-radius: 5px;
+        }
+        .cat-main::after { content: 'UωU'; position: absolute; top: 10%; left: 20%; font-weight: bold; font-size: 2vw; }
+
+        /* --- МИНИ-ИГРА --- */
+        #miniGame {
+            position: absolute;
+            inset: 0;
+            z-index: 20;
+            display: none;
+            background: #1a2a3a;
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        #ui {
+            position: absolute;
+            top: 2%; left: 3%;
+            color: #fff;
+            font-size: 3vw;
+            font-weight: bold;
+            text-shadow: 2px 2px 0 #000;
+            z-index: 30;
+            pointer-events: none;
+            display: flex;
+            gap: 3vw;
+        }
+        .life-icon { color: #ff4444; }
+
+        #gameCat {
+            position: absolute;
+            bottom: 6.5%; /* 40px */
+            width: 6%;
+            height: 10%;
+            background: #fff;
+            border: 4px solid #222;
+            border-radius: 8px;
+            z-index: 5;
+            transition: none;
+        }
+        #gameCat::after {
+            content: '^_^';
+            position: absolute; top: 10%; left: 20%; font-size: 3vw; font-weight: bold;
+        }
+
+        .game-ground {
+            position: absolute; bottom: 0; width: 100%; height: 6.5%; background: #2c3e50; border-top: 5px solid #1a252f;
+        }
+
+        /* ВРАГИ */
+        .enemy {
+            position: absolute;
+            width: 3.5%;
+            height: 6%;
+            background: #e74c3c;
+            border: 2px solid #c0392b;
+            border-radius: 5px;
+            z-index: 4;
+            box-shadow: 0 3px 0 #922b21;
+        }
+        .enemy::after {
+            content: '😈';
+            position: absolute; top: 5%; left: 10%; font-size: 3.5vw;
+        }
+        .enemy.blue { background: #3498db; border-color: #2980b9; box-shadow: 0 3px 0 #1f618d; }
+        .enemy.blue::after { content: '👾'; }
+        .enemy.green { background: #2ecc71; border-color: #27ae60; box-shadow: 0 3px 0 #1e8449; }
+        .enemy.green::after { content: '🐉'; }
+
+        /* Эффект ловли */
+        .catch-effect {
+            position: absolute;
+            width: 5%;
+            height: 8%;
+            background: #f1c40f;
+            border-radius: 50%;
+            z-index: 10;
+            pointer-events: none;
+            animation: boom 0.3s forwards;
+        }
+        @keyframes boom {
+            0% { transform: scale(0); opacity: 1; }
+            100% { transform: scale(1.5); opacity: 0; }
+        }
+
+        /* --- ЭКРАН ПРОИГРЫША --- */
+        #gameOverScreen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 50;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 2vh;
+        }
+        
+        #gameOverText {
+            color: #ff4444;
+            font-size: 6vw;
+            font-weight: bold;
+            text-shadow: 5px 5px 0 #000;
+            text-align: center;
+        }
+        
+        #respawnBtn {
+            padding: 2vh 8vw;
+            font-size: 4vw;
+            font-weight: bold;
+            background: #2ecc71;
+            color: #fff;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            box-shadow: 0 5px 0 #1e8449;
+            touch-action: manipulation;
+        }
+        #respawnBtn:active {
+            transform: scale(0.95);
+        }
+
+        /* --- МОБИЛЬНЫЕ КНОПКИ УПРАВЛЕНИЯ --- */
+        #mobileControls {
+            position: absolute;
+            bottom: 10%;
+            width: 100%;
+            z-index: 35;
+            display: none;
+            justify-content: space-between;
+            padding: 0 5%;
+            pointer-events: none;
+        }
+        
+        .ctrl-btn {
+            pointer-events: auto;
+            width: 20%;
+            height: 15%;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 4vw;
+            color: #fff;
+            font-weight: bold;
+            text-shadow: 2px 2px 0 #000;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            touch-action: none;
+            user-select: none;
+        }
+        .ctrl-btn:active {
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        #closeHint {
+            position: absolute; top: 2%; right: 3%; color: #fff; font-size: 2vw; font-weight: bold;
+            background: rgba(0,0,0,0.4); padding: 5px 12px; border-radius: 5px; z-index: 30; pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    
+    <!-- ЭКРАН 1 (РИСУНОК) -->
+    <div id="mainWorld">
+        <div class="hint-main">Нажми на Верстак!</div>
+        <div class="cloud c1"></div>
+        <div class="cloud c2"></div>
+        <div class="cloud c3"></div>
+        <div class="tree"><div class="tree-leaves"></div><div class="tree-trunk"></div></div>
+        
+        <div class="workbench" id="workbenchBtn">
+            <div class="workbench-label">Играть!</div>
+        </div>
+        
+        <div class="cat-main"></div>
+        <div class="ground-main"></div>
+    </div>
+
+    <!-- ЭКРАН 2 (ИГРА) -->
+    <div id="miniGame" tabindex="0">
+        <div id="ui">
+            <span>⭐ <span id="score">0</span></span>
+            <span class="life-icon">❤️ <span id="lives">3</span></span>
+        </div>
+        <div id="closeHint">E - выход</div>
+        
+        <!-- Мобильные кнопки -->
+        <div id="mobileControls">
+            <div class="ctrl-btn" id="btnLeft">◀</div>
+            <div class="ctrl-btn" id="btnRight">▶</div>
+        </div>
+        
+        <div id="gameOverScreen">
+            <div id="gameOverText">Ты проиграла!</div>
+            <button id="respawnBtn">🔄 Играть снова</button>
+        </div>
+        
+        <div class="game-ground"></div>
+        <div id="gameCat"></div>
+    </div>
+
+</div>
+
+<script>
+    // --- ЭЛЕМЕНТЫ ---
+    const mainWorld = document.getElementById('mainWorld');
+    const miniGame = document.getElementById('miniGame');
+    const workbenchBtn = document.getElementById('workbenchBtn');
+    const scoreSpan = document.getElementById('score');
+    const livesSpan = document.getElementById('lives');
+    const gameOverScreen = document.getElementById('gameOverScreen');
+    const respawnBtn = document.getElementById('respawnBtn');
+    const gameCat = document.getElementById('gameCat');
+    
+    // Мобильные кнопки
+    const mobileControls = document.getElementById('mobileControls');
+    const btnLeft = document.getElementById('btnLeft');
+    const btnRight = document.getElementById('btnRight');
+
+    // --- ПЕРЕМЕННЫЕ ИГРЫ ---
+    let isGameActive = false;
+    let score = 0;
+    let lives = 3;
+    let enemies = [];
+    let gameInterval;
+    let spawnInterval;
+    let moveInterval;
+
+    let catX = 480;
+    const keys = { left: false, right: false };
+
+    // Определяем, телефон ли это
+    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
+    // --- ПЕРЕКЛЮЧЕНИЕ ЭКРАНОВ ---
+    function switchGame(on) {
+        if(on) {
+            mainWorld.classList.add('hidden');
+            miniGame.style.display = 'block';
+            miniGame.focus();
+            
+            // Показываем кнопки только если это телефон
+            if(isTouchDevice) mobileControls.style.display = 'flex';
+            
+            resetGameState(); 
+            startGameLoop();
+        } else {
+            mainWorld.classList.remove('hidden');
+            miniGame.style.display = 'none';
+            mobileControls.style.display = 'none';
+            isGameActive = false;
+            clearIntervals();
+            gameOverScreen.style.display = 'none';
+            keys.left = false; keys.right = false;
+        }
+    }
+
+    workbenchBtn.addEventListener('click', () => {
+        if(!isGameActive) switchGame(true);
+    });
+
+    // Выход по E (для клавиатуры)
+    document.addEventListener('keydown', (e) => {
+        if(e.key === 'e' || e.key === 'E') {
+            e.preventDefault();
+            if(isGameActive) switchGame(false);
+        }
+        
+        if(!isGameActive) return;
+        if(e.key === 'ArrowLeft') { e.preventDefault(); keys.left = true; }
+        if(e.key === 'ArrowRight') { e.preventDefault(); keys.right = true; }
+    });
+
+    document.addEventListener('keyup', (e) => {
+        if(!isGameActive) return;
+        if(e.key === 'ArrowLeft') { e.preventDefault(); keys.left = false; }
+        if(e.key === 'ArrowRight') { e.preventDefault(); keys.right = false; }
+    });
+
+    // --- УПРАВЛЕНИЕ ДЛЯ ТЕЛЕФОНА (Нажатие пальцем) ---
+    function setupMobileButton(btn, key) {
+        const start = (e) => { e.preventDefault(); if(isGameActive) keys[key] = true; };
+        const end = (e) => { e.preventDefault(); if(isGameActive) keys[key] = false; };
+        
+        btn.addEventListener('touchstart', start);
+        btn.addEventListener('touchend', end);
+        btn.addEventListener('touchcancel', end);
+        // Также поддерживаем мышь, если вдруг подключен планшет с мышкой
+        btn.addEventListener('mousedown', start);
+        btn.addEventListener('mouseup', end);
+        btn.addEventListener('mouseleave', end);
+    }
+    setupMobileButton(btnLeft, 'left');
+    setupMobileButton(btnRight, 'right');
+
+    respawnBtn.addEventListener('click', () => {
+        resetGameState();
+        startGameLoop();
+    });
+
+    // --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
+    function clearIntervals() {
+        clearInterval(gameInterval);
+        clearInterval(spawnInterval);
+        clearInterval(moveInterval);
+    }
+
+    function resetGameState() {
+        clearIntervals();
+        enemies.forEach(el => el.remove());
+        enemies = [];
+        isGameActive = true;
+        score = 0; lives = 3;
+        catX = 480;
+        gameCat.style.left = catX + 'px';
+        scoreSpan.textContent = score;
+        livesSpan.textContent = lives;
+        gameOverScreen.style.display = 'none';
+        keys.left = false; keys.right = false;
+    }
+
+    // --- ЦИКЛ ДВИЖЕНИЯ ---
+    function startMovementLoop() {
+        moveInterval = setInterval(() => {
+            if(!isGameActive) return;
+            if(keys.left && catX > 0) catX -= 8;
+            if(keys.right && catX < 960) catX += 8;
+            gameCat.style.left = catX + 'px';
+        }, 16);
+    }
+
+    // --- ИГРОВОЙ ЦИКЛ ---
+    function spawnEnemy() {
+        if(!isGameActive || lives <= 0) return;
+        const enemy = document.createElement('div');
+        const types = ['', 'blue', 'green'];
+        const randomType = types[Math.floor(Math.random() * types.length)];
+        enemy.classList.add('enemy');
+        if(randomType) enemy.classList.add(randomType);
+        enemy.style.left = Math.random() * 95 + '%';
+        enemy.style.top = '-5%';
+        miniGame.appendChild(enemy);
+        enemies.push(enemy);
+    }
+
+    function startGameLoop() {
+        startMovementLoop();
+        spawnInterval = setInterval(spawnEnemy, 700);
+
+        gameInterval = setInterval(() => {
+            if(!isGameActive) return;
+            if(lives <= 0) {
+                gameOverScreen.style.display = 'flex';
+                isGameActive = false;
+                clearIntervals();
+                return; 
+            }
+
+            const catRect = gameCat.getBoundingClientRect();
+
+            for(let i = enemies.length - 1; i >= 0; i--) {
+                const enemy = enemies[i];
+                let top = parseInt(enemy.style.top);
+                top += 1.2; 
+                enemy.style.top = top + '%';
+                const enemyRect = enemy.getBoundingClientRect();
+
+                // Ловля
+                if(
+                    enemyRect.left < catRect.right &&
+                    enemyRect.right > catRect.left &&
+                    enemyRect.top < catRect.bottom &&
+                    enemyRect.bottom > catRect.top
+                ) {
+                    const eff = document.createElement('div');
+                    eff.classList.add('catch-effect');
+                    eff.style.left = (parseInt(enemy.style.left) - 1) + '%';
+                    eff.style.top = (parseInt(enemy.style.top) - 1) + '%';
+                    miniGame.appendChild(eff);
+                    setTimeout(() => eff.remove(), 300);
+
+                    enemy.remove();
+                    enemies.splice(i, 1);
+                    score += 10;
+                    scoreSpan.textContent = score;
+                    continue;
+                }
+
+                // Падение
+                if(top > 88) {
+                    enemy.remove();
+                    enemies.splice(i, 1);
+                    lives--;
+                    livesSpan.textContent = lives;
+                    
+                    if(lives <= 0) {
+                        gameOverScreen.style.display = 'flex';
+                        isGameActive = false;
+                        clearIntervals();
+                        return;
+                    }
+                }
+            }
+        }, 30);
+    }
+</script>
+
+</body>
+</html>
