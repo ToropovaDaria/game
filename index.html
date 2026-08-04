@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Кот Строитель (Непредсказуемые)</title>
+    <title>Кот Строитель</title>
     <style>
         * { box-sizing: border-box; touch-action: manipulation; }
         body {
@@ -25,7 +25,7 @@
             .game-box { width: 100vw; height: 100vh; border: none; box-shadow: none; }
         }
 
-        /* Кнопка на весь экран в правом верхнем углу */
+        /* Кнопка на весь экран */
         #fullscreenBtn {
             position: absolute;
             top: 15px;
@@ -48,12 +48,8 @@
             user-select: none;
             touch-action: manipulation;
         }
-        #fullscreenBtn:hover {
-            background: rgba(255, 255, 255, 0.2);
-        }
-        #fullscreenBtn:active {
-            transform: scale(0.9);
-        }
+        #fullscreenBtn:hover { background: rgba(255, 255, 255, 0.2); }
+        #fullscreenBtn:active { transform: scale(0.9); }
 
         #mainWorld {
             position: absolute; inset: 0; z-index: 10;
@@ -296,11 +292,6 @@
             else if(r > 0.4) e.classList.add('green');
             e.style.left = Math.random() * 980 + 'px';
             e.style.top = '-40px';
-            
-            // ЗАДАЁМ СЛУЧАЙНОЕ НАПРАВЛЕНИЕ ДВИЖЕНИЯ ПО ГОРИЗОНТАЛИ
-            e.dataset.dir = Math.random() > 0.5 ? 1 : -1; 
-            e.dataset.speed = 0.5 + Math.random() * 1.5; 
-            
             miniGame.appendChild(e);
             enemies.push(e);
 
@@ -330,28 +321,8 @@
             for(let i = enemies.length - 1; i >= 0; i--) {
                 const e = enemies[i];
                 let top = parseInt(e.style.top);
-                
-                // СКОРОСТЬ 0.25 ПО ВЕРТИКАЛИ
-                top += 0.75; 
+                top += 3; 
                 e.style.top = top + 'px';
-
-                // НЕПРЕДСКАЗУЕМОЕ ДВИЖЕНИЕ ПО ГОРИЗОНТАЛИ (ЗИГЗАГ)
-                let left = parseFloat(e.style.left) || 0;
-                let dir = parseFloat(e.dataset.dir);
-                let speed = parseFloat(e.dataset.speed);
-                
-                left += dir * speed;
-                
-                if(left < 0) { 
-                    left = 0; 
-                    e.dataset.dir = 1; 
-                }
-                if(left > 980) { 
-                    left = 980; 
-                    e.dataset.dir = -1; 
-                }
-                
-                e.style.left = left + 'px';
 
                 if(top > 560) {
                     e.remove();
