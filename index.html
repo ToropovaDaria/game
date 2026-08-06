@@ -26,25 +26,41 @@
             .game-box { width: 100vw; height: 100vh; border: none; box-shadow: none; }
         }
 
-        #fullscreenBtn {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            z-index: 25;
-            background: rgba(0,0,0,0.7);
-            color: #fff;
-            border: 2px solid rgba(255,255,255,0.5);
-            padding: 8px 16px;
-            border-radius: 10px;
+        /* КНОПКИ В ПРАВОМ ВЕРХНЕМ УГЛУ */
+        .top-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            padding: 10px 18px;
+            border-radius: 12px;
             font-size: 16px;
             font-weight: bold;
             cursor: pointer;
-            pointer-events: all;
-            transition: background 0.2s;
             font-family: sans-serif;
+            border: none;
+            transition: all 0.2s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
         }
-        #fullscreenBtn:hover { background: rgba(255,255,255,0.3); }
-        #fullscreenBtn:active { transform: scale(0.95); }
+        .top-btn:active { transform: scale(0.95); }
+
+        #fullscreenBtn {
+            right: 140px;
+            background: #2ecc71;
+            color: #fff;
+        }
+        #fullscreenBtn:hover { background: #27ae60; }
+
+        #installBtn {
+            background: #3498db;
+            color: #fff;
+        }
+        #installBtn:hover { background: #2980b9; }
+
+        @media (max-width: 600px) {
+            .top-btn { font-size: 12px; padding: 6px 10px; top: 10px; }
+            #fullscreenBtn { right: 80px; }
+        }
 
         #mainWorld {
             position: absolute; inset: 0; z-index: 10;
@@ -163,7 +179,9 @@
 
 <div class="game-box" id="gameWrapper">
     
-    <button id="fullscreenBtn">⛶ На весь экран</button>
+    <!-- КНОПКИ В ПРАВОМ УГЛУ -->
+    <button class="top-btn" id="fullscreenBtn">⛶ На весь экран</button>
+    <button class="top-btn" id="installBtn">📲 PWA</button>
 
     <div id="mainWorld">
         <div class="hint-main" id="hintText">Нажми на <b>Верстак</b> (или нажми E)</div>
@@ -198,6 +216,28 @@
 </div>
 
 <script>
+    // --- КНОПКА PWA ---
+    let deferredPrompt = null;
+    const installBtn = document.getElementById('installBtn');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+
+        installBtn.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    installBtn.textContent = '✅ Установлено';
+                    installBtn.style.background = '#27ae60';
+                    installBtn.disabled = true;
+                }
+                deferredPrompt = null;
+            }
+        });
+    });
+
     // --- КНОПКА ВО ВЕСЬ ЭКРАН ---
     const fullscreenBtn = document.getElementById('fullscreenBtn');
     
@@ -279,7 +319,7 @@
     respawnBtn.addEventListener('click', startGame);
 
     function startLoops() {
-        // ИНТЕРВАЛ ПОЯВЛЕНИЯ: 1500 мс = 1.5 секунды (2 врага за 3 секунды)
+        // Интервал появления: 1500 мс (2 врага за 3 секунды)
         spawnLoop = setInterval(() => {
             if(!isActive) return;
             if(lives <= 0) return;
@@ -305,7 +345,7 @@
                 score += 10;
                 scoreSpan.textContent = score;
             });
-        }, 1500); // <--- ИЗМЕНЕНО ЗДЕСЬ
+        }, 1500);
 
         gameLoop = setInterval(() => {
             if(!isActive) return;
@@ -320,7 +360,7 @@
             for(let i = enemies.length - 1; i >= 0; i--) {
                 const e = enemies[i];
                 let top = parseInt(e.style.top);
-                top += 2; // СКОРОСТЬ ПАДЕНИЯ: 2
+                top += 2; // Скорость падения
                 e.style.top = top + 'px';
 
                 if(top > 560) {
